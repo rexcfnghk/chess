@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, OverloadedLists, ViewPatterns #-}
+{-# LANGUAGE LambdaCase, OverloadedStrings, OverloadedLists, ViewPatterns #-}
 
 
 module Domain where
@@ -28,9 +28,9 @@ newtype ChessMoveParser a = ChessMoveParser
   { runParser :: ByteString -> Either ParserError (ByteString, a) }
 
 parseRank :: Char -> ChessMoveParser Char
-parseRank c = ChessMoveParser $ \input ->
+parseRank c =
   let ranks = ['a'..'h'] :: Set Char
-  in case input of
+   in ChessMoveParser $ \case
     (uncons -> Nothing) -> Left "Invalid rank"
     (uncons -> Just (x, xs)) ->
       if c `member` ranks && c == x
@@ -38,9 +38,9 @@ parseRank c = ChessMoveParser $ \input ->
       else Left "Invalid rank"
 
 parseFile :: Int -> ChessMoveParser Int
-parseFile c = ChessMoveParser $ \input ->
+parseFile c =
   let files = [1..8] :: Set Int
-  in case input of
+   in ChessMoveParser $ \case
     (uncons -> Nothing) -> Left "Invalid file"
     (uncons -> Just (x, xs)) ->
       let cInt = readEither [x] :: Either String Int
@@ -64,6 +64,7 @@ data Piece =
   deriving Eq
 
 instance Show Piece where
+  show :: Piece -> String
   show Pawn = ""
   show Knight = "N"
   show Bishop = "B"
