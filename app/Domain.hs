@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, OverloadedLists, ViewPatterns, PatternSynonyms #-}
+{-# LANGUAGE OverloadedStrings, OverloadedLists, ViewPatterns #-}
 
 
 module Domain where
@@ -7,14 +7,6 @@ import Data.ByteString.Lazy.UTF8
 import Data.Char
 import Data.Set
 import Text.Read (readEither)
-
-infixr 5 :<
-
-pattern (:<) :: Char -> ByteString -> ByteString
-pattern b :< bs <- (uncons -> Just (b, bs))
-
-pattern Empty :: ByteString
-pattern Empty   <- (uncons -> Nothing)
 
 data Colour = White | Black deriving (Eq, Show)
 
@@ -39,15 +31,25 @@ parseRank :: Char -> ChessMoveParser Char
 parseRank c = ChessMoveParser $ \input ->
   let ranks = ['a'..'h'] :: Set Char
   in case input of
-    x :< xs | x == c && c `member` ranks -> Right (xs, c)
-    [] -> Left "Invalid rank"
+    (uncons -> Nothing) -> Left "Invalid rank"
+    (uncons -> Just (x, xs)) ->
+      if c `member` ranks && c == x
+      then Right (xs, c)
+      else Left "Invalid rank"
 
 parseFile :: Int -> ChessMoveParser Int
 parseFile c = ChessMoveParser $ \input ->
   let files = [1..8] :: Set Int
   in case input of
-    x :< xs | x == c && c `member` files -> Right (xs, c)
-    [] -> Left "Invalid file"
+    (uncons -> Nothing) -> Left "Invalid file"
+    (uncons -> Just (x, xs)) ->
+      let cInt = readEither [x] :: Either String Int
+       in case cInt of
+        Left l -> Left l
+        Right i ->
+          if i `member` files && i == c
+          then Right (xs, i)
+          else Left "Invalid file"
 
 parsePosition :: ChessMoveParser Position
 parsePosition = ChessMoveParser $ readEither . fmap toLower . toString
